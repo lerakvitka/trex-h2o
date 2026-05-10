@@ -97,6 +97,17 @@ export default function App() {
     return () => clearTimeout(timeoutId);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !import.meta.env.DEV) return;
+    window.__forceRemind = () => {
+      setMessage(MESSAGES[0]);
+      setReminding(true);
+    };
+    return () => {
+      delete window.__forceRemind;
+    };
+  }, []);
+
   const resetCountdown = useCallback(() => {
     setSecondsLeft(state.interval * 60);
   }, [state.interval]);
