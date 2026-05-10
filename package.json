@@ -13,6 +13,7 @@
     "pack:win": "npm run build:renderer && node scripts/pack.cjs win",
     "pack:linux": "npm run build:renderer && node scripts/pack.cjs linux",
     "pack:mac": "npm run build:renderer && node scripts/pack.cjs mac",
+    "render-sprites": "node scripts/render-sprites.cjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@electron/packager": "^20.0.0",
+    "@resvg/resvg-js": "^2.6.2",
     "@vitejs/plugin-react": "^4.3.4",
     "archiver": "^8.0.0",
     "concurrently": "^9.1.2",
