@@ -1,0 +1,2264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>T-Rex Water Reminder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky-1: #ffe7c8;
+    --sky-2: #ffcfa3;
+    --sky-3: #f7b890;
+    --grass-1: #8ccc63;
+    --grass-2: #6cb04a;
+    --grass-3: #4f9036;
+    --trex-dark: #234d23;
+    --trex-main: #4d9b4d;
+    --trex-light: #74c46d;
+    --trex-belly: #c8e4b0;
+    --water: #6cc4e8;
+    --water-dark: #3d8fb8;
+    --cup: #fbf6e8;
+    --cup-edge: #c5b88f;
+    --sun: #ffd34a;
+    --sun-glow: #ffe27a;
+    --cloud: #fff8ec;
+    --cloud-edge: #e6dcc4;
+    --house-wood: #b87a4a;
+    --house-wood-dark: #7d4d2a;
+    --house-roof: #d65c5c;
+    --house-roof-dark: #963b3b;
+    --window-bg: #fffaf0;
+    --window-border: #b87a4a;
+    --window-shadow: #7d4d2a;
+    --ink: #3a2a1a;
+    --ink-soft: #6e5538;
+    --pink: #ff8aa8;
+    --pink-dark: #c25272;
+    --bubble-bg: #fffaf0;
+    --bubble-edge: #3a2a1a;
+
+    --pixel: 4px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    font-family: "VT323", monospace;
+    color: var(--ink);
+    background:
+      radial-gradient(ellipse at 30% 20%, #ffd9c0 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, #ffc4d6 0%, transparent 55%),
+      linear-gradient(180deg, #f7c8a8 0%, #ecb8a3 100%);
+    image-rendering: pixelated;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px 60px;
+  }
+
+  /* dotted backdrop pattern for cozy texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(58, 42, 26, 0.08) 1px, transparent 1px);
+    background-size: 12px 12px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #root {
+    position: relative;
+    z-index: 1;
+  }
+
+  .pixel { image-rendering: pixelated; image-rendering: crisp-edges; shape-rendering: crispEdges; }
+
+  /* App window — looks like a chunky pixel-bordered tamagotchi */
+  .window {
+    width: 480px;
+    background: var(--window-bg);
+    border: 4px solid var(--ink);
+    box-shadow:
+      0 0 0 4px var(--window-bg),
+      0 0 0 8px var(--ink),
+      8px 8px 0 8px rgba(58, 42, 26, 0.25);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .titlebar {
+    background: var(--trex-dark);
+    color: #f6efd6;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 4px solid var(--ink);
+    font-family: "Press Start 2P", monospace;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+  }
+  .titlebar .dot {
+    width: 10px; height: 10px;
+    background: var(--trex-light);
+    border: 2px solid var(--ink);
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,0.4);
+  }
+  .titlebar .title { flex: 1; }
+  .titlebar .countdown {
+    background: rgba(0,0,0,0.25);
+    border: 2px solid var(--ink);
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+  .titlebar .gear {
+    width: 22px; height: 22px;
+    background: var(--trex-light);
+    border: 2px solid var(--ink);
+    color: var(--ink);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Press Start 2P", monospace;
+    font-size: 9px;
+    padding: 0;
+  }
+  .titlebar .gear:hover { background: #97da8a; }
+  .titlebar .gear:active { transform: translate(1px, 1px); }
+
+  /* Scene */
+  .scene {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 480 / 340;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg,
+        var(--sky-1) 0%,
+        var(--sky-2) 55%,
+        var(--sky-3) 78%,
+        var(--sky-3) 100%);
+    border-bottom: 4px solid var(--ink);
+  }
+
+  .stars {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.6s;
+  }
+
+  .sun {
+    position: absolute;
+    top: 22px; left: 32px;
+    z-index: 1;
+    animation: sun-pulse 4s ease-in-out infinite;
+  }
+  @keyframes sun-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+  }
+
+  .cloud {
+    position: absolute;
+    top: 30px;
+    z-index: 2;
+    animation: drift linear infinite;
+  }
+  .cloud-1 { top: 28px; left: -80px; animation-duration: 80s; animation-delay: -20s; }
+  .cloud-2 { top: 56px; left: -140px; animation-duration: 110s; animation-delay: -60s; transform: scale(0.7); }
+  .cloud-3 { top: 14px; left: -180px; animation-duration: 95s; animation-delay: -10s; transform: scale(0.85); }
+
+  @keyframes drift {
+    from { transform: translateX(0) scale(var(--s, 1)); }
+    to   { transform: translateX(720px) scale(var(--s, 1)); }
+  }
+
+  .hills {
+    position: absolute;
+    bottom: 70px;
+    left: 0; right: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    pointer-events: none;
+  }
+
+  .house {
+    position: absolute;
+    bottom: 76px;
+    right: 36px;
+    z-index: 3;
+  }
+
+  .ground {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    height: 90px;
+    background:
+      linear-gradient(180deg, var(--grass-1) 0%, var(--grass-2) 35%, var(--grass-3) 100%);
+    border-top: 3px solid var(--trex-dark);
+    z-index: 4;
+  }
+  .ground::before {
+    /* grass blade tufts at top edge */
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 0; right: 0;
+    height: 6px;
+    background-image:
+      linear-gradient(90deg, transparent 0, transparent 4px, var(--grass-1) 4px, var(--grass-1) 8px, transparent 8px),
+      linear-gradient(90deg, transparent 0, transparent 12px, var(--grass-2) 12px, var(--grass-2) 16px, transparent 16px);
+    background-size: 16px 6px, 24px 6px;
+    background-repeat: repeat-x;
+  }
+  .ground::after {
+    /* speckle pattern */
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 6px 18px, var(--grass-3) 1.5px, transparent 1.5px),
+      radial-gradient(circle at 18px 40px, var(--trex-dark) 1px, transparent 1px),
+      radial-gradient(circle at 30px 28px, var(--grass-3) 1px, transparent 1px);
+    background-size: 36px 60px, 28px 80px, 44px 70px;
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  .flower {
+    position: absolute;
+    z-index: 5;
+    bottom: 18px;
+  }
+  .flower-1 { left: 36px; }
+  .flower-2 { left: 88px; bottom: 10px; }
+  .flower-3 { right: 120px; bottom: 14px; }
+
+  .trex-wrap {
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    cursor: pointer;
+    transform-origin: bottom center;
+  }
+  .trex-wrap.idle .trex-body {
+    animation: idle-bob 4.5s ease-in-out infinite, idle-look 11s ease-in-out infinite;
+    transform-origin: 50% 92%;
+  }
+  .trex-wrap.reminding .trex-body {
+    animation: bounce 0.6s cubic-bezier(.4,0,.2,1) infinite;
+    transform-origin: 50% 92%;
+  }
+  .trex-wrap.wiggle .trex-body {
+    animation: wiggle 0.45s ease-in-out 2;
+  }
+
+  @keyframes idle-bob {
+    0%, 100% { transform: translateY(0) scaleY(1); }
+    50% { transform: translateY(-2px) scaleY(0.99); }
+  }
+  @keyframes idle-look {
+    0%, 100% { transform: rotate(0deg); }
+    20% { transform: rotate(-3deg); }
+    40% { transform: rotate(0deg); }
+    60% { transform: rotate(4deg); }
+    80% { transform: rotate(0deg); }
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-22px); }
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-6deg); }
+    75% { transform: rotate(6deg); }
+  }
+
+  .trex-body {
+    position: relative;
+    will-change: transform;
+  }
+
+  .trex-shadow {
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 96px;
+    height: 8px;
+    background: rgba(58, 42, 26, 0.25);
+    border-radius: 50%;
+    filter: blur(0.5px);
+  }
+
+  .hat {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: -8px;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .pupil {
+    position: absolute;
+    width: 6px; height: 6px;
+    background: var(--ink);
+    image-rendering: pixelated;
+    transition: transform 0.4s cubic-bezier(.4,0,.2,1);
+    z-index: 3;
+    pointer-events: none;
+  }
+  /* Eye is roughly at sprite px (15, 4) — mapped at scale 5 = (75, 20) */
+
+  .cup-held {
+    position: absolute;
+    z-index: 1;
+    /* arm sits roughly at left side of body sprite */
+    left: -14px;
+    bottom: 38px;
+    opacity: 0;
+    transform: translateY(8px) scale(0.7);
+    transition: opacity 0.25s, transform 0.25s;
+  }
+  .reminding .cup-held {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    animation: cup-tilt 0.6s ease-in-out infinite;
+  }
+  @keyframes cup-tilt {
+    0%, 100% { transform: rotate(-6deg); }
+    50% { transform: rotate(6deg); }
+  }
+
+  /* Speech bubble */
+  .bubble {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    background: var(--bubble-bg);
+    border: 3px solid var(--bubble-edge);
+    padding: 10px 14px 8px;
+    font-family: "VT323", monospace;
+    font-size: 22px;
+    line-height: 1.05;
+    text-align: center;
+    width: 230px;
+    color: var(--ink);
+    box-shadow: 4px 4px 0 var(--bubble-edge);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    z-index: 20;
+  }
+  .reminding .bubble {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-18px);
+    animation: bubble-pop 0.35s cubic-bezier(.5,1.6,.6,1);
+  }
+  @keyframes bubble-pop {
+    0% { opacity: 0; transform: translateX(-50%) translateY(0) scale(0.6); }
+    100% { opacity: 1; transform: translateX(-50%) translateY(-18px) scale(1); }
+  }
+  .bubble::after, .bubble::before {
+    content: '';
+    position: absolute;
+    bottom: -14px;
+    left: 50%;
+    margin-left: -7px;
+    border: 7px solid transparent;
+    border-top-color: var(--bubble-edge);
+  }
+  .bubble::before {
+    bottom: -10px;
+    margin-left: -6px;
+    border-width: 6px;
+    border-top-color: var(--bubble-bg);
+    z-index: 1;
+  }
+
+  /* Tracker bar */
+  .panel {
+    padding: 16px 18px 18px;
+    background: var(--window-bg);
+    position: relative;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .stat-label {
+    font-family: "Press Start 2P", monospace;
+    font-size: 9px;
+    color: var(--ink-soft);
+    letter-spacing: 0.5px;
+  }
+
+  .stat-value {
+    font-family: "Press Start 2P", monospace;
+    font-size: 11px;
+    color: var(--ink);
+    margin-left: auto;
+  }
+
+  .glasses {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+  }
+
+  .glass-slot {
+    aspect-ratio: 1 / 1;
+    background: #f0e6cf;
+    border: 2px solid var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.12s, background 0.2s;
+  }
+  .glass-slot:hover { background: #e8dcb8; }
+  .glass-slot:active { transform: translate(1px, 1px); }
+  .glass-slot.full { background: #d4ecf8; }
+
+  /* Drink button */
+  .drink-btn {
+    margin-top: 14px;
+    width: 100%;
+    padding: 14px;
+    background: var(--trex-main);
+    color: #fffaf0;
+    border: 3px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+    font-family: "Press Start 2P", monospace;
+    font-size: 12px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: transform 0.08s, box-shadow 0.08s, background 0.15s;
+  }
+  .drink-btn:hover { background: var(--trex-light); }
+  .drink-btn:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0 0 0 var(--ink);
+  }
+  .drink-btn.done {
+    background: var(--sun);
+    color: var(--ink);
+    cursor: default;
+  }
+  .drink-btn.done:active { transform: none; box-shadow: 4px 4px 0 var(--ink); }
+
+  /* Bottom row controls */
+  .controls {
+    margin-top: 14px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .ctrl-btn {
+    padding: 8px 10px;
+    background: var(--window-bg);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    box-shadow: 2px 2px 0 var(--ink);
+    font-family: "Press Start 2P", monospace;
+    font-size: 8px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .ctrl-btn:hover { background: #fff2d4; }
+  .ctrl-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0 0 0 var(--ink);
+  }
+  .ctrl-btn.primary { background: var(--pink); color: #fffaf0; }
+  .ctrl-btn.primary:hover { background: #ff9eb8; }
+
+  .next-reminder {
+    margin-left: auto;
+    font-family: "VT323", monospace;
+    font-size: 18px;
+    color: var(--ink-soft);
+  }
+  .next-reminder strong {
+    font-family: "Press Start 2P", monospace;
+    font-size: 10px;
+    color: var(--ink);
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(58, 42, 26, 0.5);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    animation: fadein 0.2s;
+  }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: var(--window-bg);
+    border: 4px solid var(--ink);
+    box-shadow: 8px 8px 0 rgba(58,42,26,0.4);
+    width: 100%;
+    max-width: 420px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-head {
+    background: var(--trex-dark);
+    color: #fffaf0;
+    padding: 10px 14px;
+    font-family: "Press Start 2P", monospace;
+    font-size: 11px;
+    border-bottom: 4px solid var(--ink);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .modal-head .x {
+    margin-left: auto;
+    background: var(--pink);
+    color: #fffaf0;
+    border: 2px solid var(--ink);
+    width: 24px; height: 24px;
+    font-family: "Press Start 2P", monospace;
+    font-size: 10px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-body { padding: 16px 18px 18px; }
+
+  .section-label {
+    font-family: "Press Start 2P", monospace;
+    font-size: 9px;
+    color: var(--ink-soft);
+    letter-spacing: 0.5px;
+    margin: 14px 0 8px;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  .interval-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .interval-btn {
+    padding: 10px 4px;
+    background: var(--window-bg);
+    border: 2px solid var(--ink);
+    box-shadow: 2px 2px 0 var(--ink);
+    font-family: "Press Start 2P", monospace;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .interval-btn:hover { background: #fff2d4; }
+  .interval-btn:active, .interval-btn.active {
+    transform: translate(2px, 2px);
+    box-shadow: 0 0 0 var(--ink);
+  }
+  .interval-btn.active {
+    background: var(--trex-main);
+    color: #fffaf0;
+  }
+
+  .hat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .hat-card {
+    background: linear-gradient(180deg, var(--sky-1), var(--sky-2));
+    border: 2px solid var(--ink);
+    box-shadow: 2px 2px 0 var(--ink);
+    aspect-ratio: 1 / 1;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+    overflow: hidden;
+  }
+  .hat-card:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+  .hat-card.active {
+    box-shadow: 0 0 0 var(--ink), inset 0 0 0 3px var(--trex-main);
+    transform: translate(2px, 2px);
+  }
+  .hat-card.locked {
+    cursor: not-allowed;
+    filter: grayscale(0.6) brightness(0.7);
+  }
+  .hat-card .lock-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(58,42,26,0.55);
+    color: #fffaf0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: "Press Start 2P", monospace;
+    font-size: 7px;
+    text-align: center;
+    line-height: 1.6;
+    gap: 2px;
+  }
+  .hat-card .name {
+    position: absolute;
+    bottom: 2px; left: 0; right: 0;
+    text-align: center;
+    font-family: "VT323", monospace;
+    font-size: 14px;
+    color: var(--ink);
+    background: rgba(255,250,240,0.8);
+    padding: 1px 0;
+    line-height: 1;
+  }
+  .hat-card .preview-trex {
+    transform: scale(0.55);
+    transform-origin: center center;
+    position: relative;
+  }
+
+  .reset-btn {
+    width: 100%;
+    padding: 10px;
+    background: var(--window-bg);
+    border: 2px solid var(--pink-dark);
+    color: var(--pink-dark);
+    box-shadow: 2px 2px 0 var(--pink-dark);
+    font-family: "Press Start 2P", monospace;
+    font-size: 9px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .reset-btn:hover { background: #fff0f4; }
+  .reset-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--pink-dark); }
+
+  /* Confetti */
+  .confetti-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 50;
+  }
+  .confetti-piece {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    top: -20px;
+    animation: confetti-fall linear forwards;
+  }
+  @keyframes confetti-fall {
+    to {
+      transform: translateY(800px) rotate(720deg);
+      opacity: 0;
+    }
+  }
+
+  /* Footer credit */
+  .footer {
+    margin-top: 16px;
+    text-align: center;
+    font-family: "VT323", monospace;
+    font-size: 16px;
+    color: var(--ink-soft);
+    opacity: 0.7;
+  }
+  .footer .heart { color: var(--pink-dark); }
+
+  /* utility */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" data-presets="react">
+// Pixel art sprite system + sprite definitions
+
+const PIXEL_PALETTE = {
+  '.': null,
+  // T-Rex
+  'D': '#234d23',  // dark outline
+  'G': '#4d9b4d',  // main green
+  'g': '#74c46d',  // light green highlight
+  'L': '#c8e4b0',  // belly light
+  'l': '#a3cf86',  // belly mid
+  'W': '#fffaf0',  // eye white
+  'K': '#1a1a1a',  // pupil
+  'M': '#4a2222',  // mouth
+  't': '#fff7c8',  // tooth
+  'n': '#3a7a3a',  // nostril
+  // Cup / water
+  'c': '#fbf6e8',  // cup glass light
+  'C': '#c5b88f',  // cup edge
+  'b': '#6cc4e8',  // water
+  'B': '#3d8fb8',  // water dark
+  // Sun
+  'y': '#ffd34a',
+  'Y': '#ffe27a',
+  'o': '#f0a830',
+  // Cloud
+  'w': '#fff8ec',
+  'e': '#e6dcc4',
+  // House
+  'h': '#b87a4a',
+  'H': '#7d4d2a',
+  'r': '#d65c5c',
+  'R': '#963b3b',
+  'q': '#f0e0c0',
+  // Hills
+  'p': '#5fa345',
+  'P': '#3f7a2c',
+  // Hat colors
+  '1': '#ffcc33', '2': '#e89923', '3': '#ff5577', '4': '#a23a5e',
+  '5': '#7a5fff', '6': '#3a2d80', '7': '#1a1a1a', '8': '#3a3a3a',
+  '9': '#ff9eb8', '0': '#ffffff', '!': '#5cc1f5', '@': '#2d7eb8',
+  '#': '#8e6a3a', '$': '#5a3e1d',
+  // Flower
+  'f': '#ff8aa8', 'F': '#c25272', 'z': '#ffe27a',
+};
+
+function PixelSprite({ pixels, palette = PIXEL_PALETTE, scale = 5, className = '', style = {}, onClick }) {
+  const rows = pixels.length;
+  const cols = Math.max(...pixels.map(r => r.length));
+  const rects = [];
+  // Coalesce horizontal runs of same color for cleaner SVG
+  for (let y = 0; y < rows; y++) {
+    const row = pixels[y];
+    let x = 0;
+    while (x < row.length) {
+      const c = row[x];
+      const color = palette[c];
+      if (!color) { x++; continue; }
+      let len = 1;
+      while (x + len < row.length && row[x + len] === c) len++;
+      rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={len} height={1} fill={color} />);
+      x += len;
+    }
+  }
+  return (
+    <svg
+      width={cols * scale}
+      height={rows * scale}
+      viewBox={`0 0 ${cols} ${rows}`}
+      className={`pixel ${className}`}
+      style={{ display: 'block', ...style }}
+      onClick={onClick}
+    >
+      {rects}
+    </svg>
+  );
+}
+
+// =============== T-REX ===============
+// 26 cols x 22 rows. Eye is at approx (15-16, 4-5). Drawn facing right.
+const TREX_PIXELS = [
+  "..............DDDDDDD.....",
+  ".............DGGGGGGGD....",
+  "............DGgGGGGGGGD...",
+  "............DGGWWGGGGGD...",
+  "............DGGWKGGGGGD...",
+  "............DGGGGGGGGGD...",
+  "...........DDGGGGGGGGGDD..",
+  "...........DGGGGGGGGGGGD..",
+  "...........DGGGGtGGGGGD...",
+  "...D......DDGGGGGGGGGD....",
+  "..DGD....DDGGGGGGGGGGD....",
+  ".DGgGD..DGGGGGGGGGgggDD...",
+  "DGgGGGDDGGGGGGGGGGgggLD...",
+  "DGGGGGGGGGGGGGGGGgglLLD...",
+  "DGGGGGGGGGGGGGGGgglLLLD...",
+  ".DGGGGGGGGGGGGGGgLLLLD....",
+  "..DGGGGGGGGGGGGGgLLLD.....",
+  "...DGGGGGGGGGGGGgLD.......",
+  "....DGGGGDDDGGGGD.........",
+  "....DGGGD..DGGGGD.........",
+  "....DGGGD..DGGGGD.........",
+  "....DDDDD..DDDDDD.........",
+];
+
+// Hats — drawn relative to T-Rex head. The head top is roughly at sprite (12-21, 0-1).
+// Hat sprite gets positioned via CSS so sprite (10, 0) of hat aligns over t-rex head top.
+// We'll just render hats with their own widths/heights; CSS will pin them.
+
+const HAT_NONE = null;
+
+const HAT_PARTY = [
+  ".....1.....",
+  "....111....",
+  "...11111...",
+  "..1111111..",
+  ".111111111.",
+  "11111111111",
+  "33333333333", // band at base
+];
+
+const HAT_CROWN = [
+  "1.1.1.1.1.1",
+  "1.1.1.1.1.1",
+  "11111111111",
+  "13311311331",
+  "11111111111",
+  "22222222222",
+];
+
+const HAT_TOP = [
+  ".77777777.",
+  ".77777777.",
+  ".77777777.",
+  ".77777777.",
+  ".77777777.",
+  ".77777777.",
+  "9999999999",
+  "7777777777",
+];
+
+const HAT_FLOWER = [
+  "...f.f...f.f...",
+  "..fzfzf.fzfzf..",
+  "...f.f...f.f...",
+  ".f...........f.",
+  "fzf.........fzf",
+  ".f...........f.",
+];
+
+const HAT_WIZARD = [
+  "....55....",
+  "...5555...",
+  "..550055..",
+  "..555555..",
+  ".55505555.",
+  ".55555555.",
+  "5555555555",
+  "5555555555",
+  "6666666666",
+];
+
+// Hat metadata: name, pixel grid, top offset (pixels of head it covers above),
+// scale we want in real px, and unlock threshold (cumulative glasses ever drunk)
+const HATS = [
+  { id: 'none',   name: 'No Hat',     pixels: null,        unlock: 0,  scale: 5, dy: 0 },
+  { id: 'party',  name: 'Party Hat',  pixels: HAT_PARTY,   unlock: 0,  scale: 5, dy: -22 },
+  { id: 'crown',  name: 'Crown',      pixels: HAT_CROWN,   unlock: 5,  scale: 5, dy: -16 },
+  { id: 'top',    name: 'Top Hat',    pixels: HAT_TOP,     unlock: 10, scale: 5, dy: -28 },
+  { id: 'flower', name: 'Flower Crown', pixels: HAT_FLOWER, unlock: 20, scale: 4, dy: -10 },
+  { id: 'wizard', name: 'Wizard Hat', pixels: HAT_WIZARD,  unlock: 40, scale: 5, dy: -34 },
+];
+
+function TRex({ scale = 5, hatId = 'none', lookDir = 0, lookV = 0 }) {
+  const hat = HATS.find(h => h.id === hatId) || HATS[0];
+  // Eye is at sprite coord ~ (16, 4) for the white. Pupil currently at (16,4)
+  // We'll overlay an extra pupil that can shift by lookDir/lookV pixels.
+  return (
+    <div className="trex-body" style={{ position: 'relative', width: 26 * scale, height: 22 * scale }}>
+      <PixelSprite pixels={TREX_PIXELS} scale={scale} />
+      {/* Animated pupil overlay sits exactly at eye-white area; nudges 1px L/R */}
+      <div
+        style={{
+          position: 'absolute',
+          left: (15 * scale) + (lookDir * scale * 0.6),
+          top: (4 * scale) + (lookV * scale * 0.6),
+          width: scale,
+          height: scale,
+          background: '#1a1a1a',
+          imageRendering: 'pixelated',
+          transition: 'left 0.5s cubic-bezier(.4,0,.2,1), top 0.5s cubic-bezier(.4,0,.2,1)',
+          pointerEvents: 'none',
+        }}
+      />
+      {/* Cheek blush for cuteness */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 14 * scale,
+          top: 6 * scale,
+          width: 2 * scale,
+          height: scale,
+          background: 'rgba(255, 138, 168, 0.55)',
+          borderRadius: '40%',
+          pointerEvents: 'none',
+        }}
+      />
+      {hat.pixels && (
+        <div
+          className="hat"
+          style={{
+            top: hat.dy + 'px',
+            left: '62%', // bias hat over the head (right side of sprite)
+            transform: 'translateX(-50%)',
+          }}
+        >
+          <PixelSprite pixels={hat.pixels} scale={hat.scale} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============== CUP ===============
+const CUP_PIXELS = [
+  "CCCCCCCC",
+  "CcccccccC",
+  "CcBBBBBcC",
+  "CcbbbbbcC",
+  "CcbbbbbcC",
+  "CccccccC.",
+  ".CCCCCCC.",
+  "..CCCCCC..",
+];
+
+function Cup({ scale = 4 }) {
+  return <PixelSprite pixels={CUP_PIXELS} scale={scale} />;
+}
+
+// little glass icon for tracker (smaller)
+const GLASS_FULL = [
+  "BBBBBB",
+  "bbbbbb",
+  "bbbbbb",
+  "bbbbbb",
+  "bbbbbb",
+  ".bbbb.",
+];
+const GLASS_EMPTY = [
+  "CC..CC",
+  "C....C",
+  "C....C",
+  "C....C",
+  "C....C",
+  ".CCCC.",
+];
+function GlassIcon({ full, scale = 4 }) {
+  return <PixelSprite pixels={full ? GLASS_FULL : GLASS_EMPTY} scale={scale} />;
+}
+
+// =============== SUN ===============
+const SUN_PIXELS = [
+  "...yyyyy...",
+  "..yyyYYyy..",
+  ".yyYYYYYyy.",
+  "yyYYYYYYYyy",
+  "yyYYYYYYYyy",
+  "yyYYYYYYYyy",
+  ".yyYYYYYyy.",
+  "..yyyYYyy..",
+  "...yyyyy...",
+];
+function Sun({ scale = 5 }) {
+  return <PixelSprite pixels={SUN_PIXELS} scale={scale} />;
+}
+
+// =============== CLOUD ===============
+const CLOUD_PIXELS = [
+  "..eee...eee..",
+  ".ewwwe.ewwwe.",
+  "ewwwwwwwwwwwe",
+  "ewwwwwwwwwwwe",
+  ".ewwwwwwwwwe.",
+  "..eeeeeeee...",
+];
+function Cloud({ scale = 4 }) {
+  return <PixelSprite pixels={CLOUD_PIXELS} scale={scale} />;
+}
+
+// =============== HOUSE ===============
+const HOUSE_PIXELS = [
+  "....RR....",
+  "...rRRr...",
+  "..rrRRrr..",
+  ".rrrrrrrr.",
+  "rrrrrrrrrr",
+  "RRRRRRRRRR",
+  "HhhhhhhhhH",
+  "Hh!@@!hhhH",
+  "Hh!@@!hhhH",
+  "Hh!!!!hhhH",
+  "Hhhhhh##hH",
+  "Hhhhhh#$hH",
+  "HHHHHHHHHH",
+];
+function House({ scale = 3 }) {
+  return <PixelSprite pixels={HOUSE_PIXELS} scale={scale} />;
+}
+
+// =============== HILL ===============
+const HILL_PIXELS = [
+  "....pppppp....",
+  "..pppppppppp..",
+  ".pppppppppppp.",
+  "pppPPPpppPPPpp",
+  "pppPPPpppPPPpp",
+  "PPPPPPPPPPPPPP",
+];
+function Hill({ scale = 4 }) {
+  return <PixelSprite pixels={HILL_PIXELS} scale={scale} />;
+}
+
+// =============== FLOWER ===============
+const FLOWER_PIXELS = [
+  ".f.f.",
+  "fzfzf",
+  ".f.f.",
+  "..p..",
+  "..p..",
+  "..p..",
+];
+function Flower({ scale = 3 }) {
+  return <PixelSprite pixels={FLOWER_PIXELS} scale={scale} />;
+}
+
+// =============== STAR (for confetti / sparkle) ===============
+const SPARKLE_PIXELS = [
+  "..0..",
+  ".000.",
+  "00100",
+  ".000.",
+  "..0..",
+];
+function Sparkle({ scale = 3 }) {
+  return <PixelSprite pixels={SPARKLE_PIXELS} scale={scale} />;
+}
+
+// expose
+Object.assign(window, {
+  PixelSprite, TRex, Cup, GlassIcon, Sun, Cloud, House, Hill, Flower, Sparkle,
+  HATS, PIXEL_PALETTE,
+});
+
+// Main App
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+const STORAGE_KEY = 'trex-water-app-v1';
+const DAILY_GOAL = 8;
+const INTERVAL_OPTIONS = [15, 30, 45, 60];
+
+const MESSAGES = [
+  "drink you water",
+  "not drinking water — that's what killed us",
+  "pie had his water, now it's you turn",
+  "make me proud — drink water",
+];
+
+const REMINDER_AUTO_DISMISS_MS = 90 * 1000;
+
+function todayStr() {
+  return new Date().toDateString();
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed;
+  } catch { return null; }
+}
+
+const DEFAULT_STATE = {
+  date: todayStr(),
+  glasses: 0,
+  totalGlasses: 0,
+  interval: 30,
+  hat: 'none',
+  lastDrinkAt: null,
+  goalHitToday: false,
+};
+
+function App() {
+  const [state, setState] = useState(() => {
+    const saved = loadState();
+    if (!saved) return DEFAULT_STATE;
+    if (saved.date !== todayStr()) {
+      return { ...saved, date: todayStr(), glasses: 0, goalHitToday: false };
+    }
+    return { ...DEFAULT_STATE, ...saved };
+  });
+
+  // Persist
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
+
+  // ----- reminder timer -----
+  const [secondsLeft, setSecondsLeft] = useState(state.interval * 60);
+  const [reminding, setReminding] = useState(false);
+  const [message, setMessage] = useState('');
+  const [confetti, setConfetti] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showHats, setShowHats] = useState(false);
+  const [wiggle, setWiggle] = useState(false);
+
+  // Idle eye look — random direction every few seconds
+  const [look, setLook] = useState({ x: 0, y: 0 });
+  useEffect(() => {
+    let timeoutId;
+    const tick = () => {
+      const dirs = [
+        { x: 0, y: 0 },
+        { x: -1, y: 0 },
+        { x: 1, y: 0 },
+        { x: 0, y: 1 },
+        { x: 1, y: -1 },
+        { x: -1, y: 1 },
+      ];
+      setLook(dirs[Math.floor(Math.random() * dirs.length)]);
+      timeoutId = setTimeout(tick, 1800 + Math.random() * 2200);
+    };
+    tick();
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  // Reset countdown when interval changes or after reminding ends/drink
+  const resetCountdown = useCallback(() => {
+    setSecondsLeft(state.interval * 60);
+  }, [state.interval]);
+
+  useEffect(() => { resetCountdown(); }, [state.interval]);
+
+  // Tick
+  useEffect(() => {
+    if (reminding) return; // pause timer while actively reminding
+    const id = setInterval(() => {
+      setSecondsLeft(t => {
+        if (t <= 1) {
+          triggerReminder();
+          return state.interval * 60;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [reminding, state.interval]);
+
+  // Auto-dismiss reminder after a bit (he hovers, doesn't pester forever)
+  useEffect(() => {
+    if (!reminding) return;
+    const id = setTimeout(() => {
+      setReminding(false);
+      setMessage('');
+    }, REMINDER_AUTO_DISMISS_MS);
+    return () => clearTimeout(id);
+  }, [reminding]);
+
+  function triggerReminder() {
+    setMessage(MESSAGES[Math.floor(Math.random() * MESSAGES.length)]);
+    setReminding(true);
+  }
+
+  function drink() {
+    setState(s => {
+      if (s.glasses >= DAILY_GOAL) return s;
+      const newGlasses = s.glasses + 1;
+      const justHitGoal = newGlasses === DAILY_GOAL && !s.goalHitToday;
+      if (justHitGoal) {
+        setConfetti(true);
+        setTimeout(() => setConfetti(false), 5000);
+      }
+      return {
+        ...s,
+        glasses: newGlasses,
+        totalGlasses: (s.totalGlasses || 0) + 1,
+        lastDrinkAt: Date.now(),
+        goalHitToday: justHitGoal ? true : s.goalHitToday,
+      };
+    });
+    if (reminding) {
+      setReminding(false);
+      setMessage('');
+    }
+    resetCountdown();
+  }
+
+  function setGlasses(n) {
+    setState(s => ({ ...s, glasses: Math.max(0, Math.min(DAILY_GOAL, n)) }));
+  }
+
+  function setInterval_(mins) {
+    setState(s => ({ ...s, interval: mins }));
+    setSecondsLeft(mins * 60);
+  }
+
+  function setHat(id) {
+    setState(s => ({ ...s, hat: id }));
+  }
+
+  function resetToday() {
+    setState(s => ({ ...s, glasses: 0, goalHitToday: false }));
+    setReminding(false);
+    setMessage('');
+    resetCountdown();
+  }
+
+  function dismissReminder() {
+    setReminding(false);
+    setMessage('');
+    resetCountdown();
+  }
+
+  function pokeTrex() {
+    if (reminding) {
+      // tapping during reminder = drink
+      drink();
+      return;
+    }
+    setWiggle(true);
+    setTimeout(() => setWiggle(false), 900);
+    // Sometimes show a passing thought
+    if (Math.random() < 0.5) {
+      setMessage(MESSAGES[Math.floor(Math.random() * MESSAGES.length)]);
+      setReminding(true);
+    }
+  }
+
+  // formatting
+  const mm = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
+  const ss = String(secondsLeft % 60).padStart(2, '0');
+
+  const trexClass = reminding ? 'reminding' : (wiggle ? 'wiggle' : 'idle');
+
+  return (
+    <div className="window" role="application" aria-label="T-Rex water reminder">
+      {/* Title bar */}
+      <div className="titlebar">
+        <span className="dot" aria-hidden="true"></span>
+        <span className="title">T-REX H2O</span>
+        <span className="countdown" title="Time until next reminder">{mm}:{ss}</span>
+        <button className="gear" onClick={() => setShowSettings(true)} aria-label="Settings">≡</button>
+      </div>
+
+      {/* Scene */}
+      <div className="scene">
+        <div className="sun"><Sun scale={4} /></div>
+
+        <div className="cloud cloud-1"><Cloud scale={4} /></div>
+        <div className="cloud cloud-2"><Cloud scale={3} /></div>
+        <div className="cloud cloud-3"><Cloud scale={3} /></div>
+
+        <div className="hills">
+          <div style={{ transform: 'translateY(20px) scale(1.6)', opacity: 0.7 }}><Hill scale={3} /></div>
+          <div style={{ transform: 'translateY(8px) scale(2)', opacity: 0.85 }}><Hill scale={3} /></div>
+        </div>
+
+        <div className="house"><House scale={3} /></div>
+
+        <div className="ground"></div>
+
+        <div className="flower flower-1"><Flower scale={3} /></div>
+        <div className="flower flower-2"><Flower scale={2} /></div>
+        <div className="flower flower-3"><Flower scale={3} /></div>
+
+        <div className={`trex-wrap ${trexClass}`} onClick={pokeTrex} role="button" aria-label="T-Rex">
+          <div className="bubble" aria-live="polite">{message}</div>
+          <div className="trex-shadow"></div>
+          <TRex scale={5} hatId={state.hat} lookDir={look.x} lookV={look.y} />
+          <div className="cup-held"><Cup scale={4} /></div>
+        </div>
+
+        {confetti && <Confetti />}
+      </div>
+
+      {/* Panel */}
+      <div className="panel">
+        <div className="row">
+          <span className="stat-label">DAILY GOAL</span>
+          <span className="stat-value">{state.glasses} / {DAILY_GOAL}</span>
+        </div>
+        <div className="glasses" aria-label="Glasses tracker">
+          {Array.from({ length: DAILY_GOAL }).map((_, i) => {
+            const full = i < state.glasses;
+            return (
+              <div
+                key={i}
+                className={`glass-slot ${full ? 'full' : ''}`}
+                onClick={() => setGlasses(full ? i : i + 1)}
+                title={full ? 'Click to un-mark' : 'Mark this glass'}
+              >
+                <GlassIcon full={full} scale={3} />
+              </div>
+            );
+          })}
+        </div>
+
+        <button
+          className={`drink-btn ${state.glasses >= DAILY_GOAL ? 'done' : ''}`}
+          onClick={drink}
+          disabled={state.glasses >= DAILY_GOAL}
+        >
+          {state.glasses >= DAILY_GOAL ? '★ GOAL HIT — GOOD BOY ★' : 'I DRANK A GLASS'}
+        </button>
+
+        <div className="controls">
+          <button className="ctrl-btn primary" onClick={triggerReminder} title="Trigger reminder right now">
+            TEST
+          </button>
+          <button className="ctrl-btn" onClick={() => setShowHats(true)}>
+            HATS
+          </button>
+          <span className="next-reminder">
+            next nag in <strong>{mm}:{ss}</strong>
+          </span>
+        </div>
+      </div>
+
+      {showSettings && (
+        <SettingsModal
+          state={state}
+          onClose={() => setShowSettings(false)}
+          onSetInterval={setInterval_}
+          onReset={resetToday}
+        />
+      )}
+
+      {showHats && (
+        <HatModal
+          state={state}
+          onClose={() => setShowHats(false)}
+          onPick={setHat}
+        />
+      )}
+    </div>
+  );
+}
+
+// =============== SETTINGS MODAL ===============
+function SettingsModal({ state, onClose, onSetInterval, onReset }) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-head">
+          <span>SETTINGS</span>
+          <button className="x" onClick={onClose} aria-label="Close">X</button>
+        </div>
+        <div className="modal-body">
+          <div className="section-label">REMIND ME EVERY</div>
+          <div className="interval-row">
+            {INTERVAL_OPTIONS.map(m => (
+              <button
+                key={m}
+                className={`interval-btn ${state.interval === m ? 'active' : ''}`}
+                onClick={() => onSetInterval(m)}
+              >
+                {m}m
+              </button>
+            ))}
+          </div>
+
+          <div className="section-label">TODAY</div>
+          <div style={{ fontFamily: 'VT323, monospace', fontSize: 18, lineHeight: 1.3, color: 'var(--ink)' }}>
+            Glasses drunk: <strong>{state.glasses}</strong> / {DAILY_GOAL}<br/>
+            Lifetime glasses: <strong>{state.totalGlasses || 0}</strong><br/>
+            {state.lastDrinkAt
+              ? <>Last drink: {new Date(state.lastDrinkAt).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</>
+              : <>No drinks logged yet today</>}
+          </div>
+
+          <div className="section-label">DANGER ZONE</div>
+          <button className="reset-btn" onClick={() => {
+            if (confirm('Reset today\'s glasses to 0?')) onReset();
+          }}>
+            RESET TODAY
+          </button>
+
+          <div style={{ marginTop: 18, fontFamily: 'VT323, monospace', fontSize: 16, color: 'var(--ink-soft)', textAlign: 'center', lineHeight: 1.2 }}>
+            tip: tap the t-rex to poke him<br/>
+            click any glass to mark it
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============== HAT MODAL ===============
+function HatModal({ state, onClose, onPick }) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-head">
+          <span>T-REX WARDROBE</span>
+          <button className="x" onClick={onClose} aria-label="Close">X</button>
+        </div>
+        <div className="modal-body">
+          <div className="section-label">UNLOCK HATS BY DRINKING WATER</div>
+          <div className="hat-grid">
+            {HATS.map(hat => {
+              const unlocked = (state.totalGlasses || 0) >= hat.unlock;
+              const active = state.hat === hat.id;
+              return (
+                <div
+                  key={hat.id}
+                  className={`hat-card ${active ? 'active' : ''} ${!unlocked ? 'locked' : ''}`}
+                  onClick={() => unlocked && onPick(hat.id)}
+                  title={unlocked ? hat.name : `Drink ${hat.unlock} glasses to unlock`}
+                >
+                  <div className="preview-trex">
+                    <TRex scale={3} hatId={hat.id} lookDir={0} lookV={0} />
+                  </div>
+                  <div className="name">{hat.name}</div>
+                  {!unlocked && (
+                    <div className="lock-overlay">
+                      <div>LOCKED</div>
+                      <div>{hat.unlock} TOTAL</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ marginTop: 14, fontFamily: 'VT323, monospace', fontSize: 16, color: 'var(--ink-soft)', textAlign: 'center', lineHeight: 1.2 }}>
+            you've drunk <strong>{state.totalGlasses || 0}</strong> glasses ever ✦
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============== CONFETTI ===============
+function Confetti() {
+  const pieces = useMemo(() => {
+    const colors = ['#ff8aa8', '#ffd34a', '#74c46d', '#6cc4e8', '#a78bfa', '#ff9e7c'];
+    return Array.from({ length: 60 }).map((_, i) => ({
+      key: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 1.2,
+      duration: 2.4 + Math.random() * 2,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: 6 + Math.random() * 6,
+      rot: Math.random() * 360,
+      shape: Math.random() < 0.5 ? '0' : '50%',
+    }));
+  }, []);
+  return (
+    <div className="confetti-layer" aria-hidden="true">
+      {pieces.map(p => (
+        <span
+          key={p.key}
+          className="confetti-piece"
+          style={{
+            left: p.left + '%',
+            width: p.size,
+            height: p.size,
+            background: p.color,
+            borderRadius: p.shape,
+            animationDelay: p.delay + 's',
+            animationDuration: p.duration + 's',
+            transform: `rotate(${p.rot}deg)`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// =============== ROOT ===============
+function Root() {
+  return (
+    <>
+      <App />
+      <div className="footer">
+        made with <span className="heart">♥</span> · stay hydrated
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
+
+</script>
+  </body>
+</html>
+: '#5a3e1d',
+  // Flower
+  'f': '#ff8aa8', 'F': '#c25272', 'z': '#ffe27a',
+};
+
+function PixelSprite({ pixels, palette = PIXEL_PALETTE, scale = 5, className = '', style = {}, onClick }) {
+  const rows = pixels.length;
+  const cols = Math.max(...pixels.map(r => r.length));
+  const rects = [];
+  // Coalesce horizontal runs of same color for cleaner SVG
+  for (let y = 0; y < rows; y++) {
+    const row = pixels[y];
+    let x = 0;
+    while (x < row.length) {
+      const c = row[x];
+      const color = palette[c];
+      if (!color) { x++; continue; }
+      let len = 1;
+      while (x + len < row.length && row[x + len] === c) len++;
+      rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={len} height={1} fill={color} />);
+      x += len;
+    }
+  }
+  return (
+    <svg
+      width={cols * scale}
+      height={rows * scale}
+      viewBox={`0 0 ${cols} ${rows}`}
+      className={`pixel ${className}`}
+      style={{ display: 'block', ...style }}
+      onClick={onClick}
+    >
+      {rects}
+    </svg>
+  );
+}
+
+// =============== T-REX ===============
+// 26 cols x 22 rows. Eye is at approx (15-16, 4-5). Drawn facing right.
+const TREX_PIXELS = [
+  "..............DDDDDDD.....",
+  ".............DGGGGGGGD....",
+  "............DGgGGGGGGGD...",
+  "............DGGWWGGGGGD...",
+  "............DGGWKGGGGGD...",
+  "............DGGGGGGGGGD...",
+  "...........DDGGGGGGGGGDD..",
+  "...........DGGGGGGGGGGGD..",
+  "...........DGGGGtGGGGGD...",
+  "...D......DDGGGGGGGGGD....",
+  "..DGD....DDGGGGGGGGGGD....",
+  ".DGgGD..DGGGGGGGGGgggDD...",
+  "DGgGGGDDGGGGGGGGGGgggLD...",
+  "DGGGGGGGGGGGGGGGGgglLLD...",
+  "DGGGGGGGGGGGGGGGgglLLLD...",
+  ".DGGGGGGGGGGGGGGgLLLLD....",
+  "..DGGGGGGGGGGGGGgLLLD.....",
+  "...DGGGGGGGGGGGGgLD.......",
+  "....DGGGGDDDGGGGD.........",
+  "....DGGGD..DGGGGD.........",
+  "....DGGGD..DGGGGD.........",
+  "....DDDDD..DDDDDD.........",
+];
+
+// Hats — drawn relative to T-Rex head. The head top is roughly at sprite (12-21, 0-1).
+// Hat sprite gets positioned via CSS so sprite (10, 0) of hat aligns over t-rex head top.
+// We'll just render hats with their own widths/heights; CSS will pin them.
+
+const HAT_NONE = null;
+
+const HAT_PARTY = [
+  ".....1.....",
+  "....111....",
+  "...11111...",
+  "..1111111..",
+  ".111111111.",
+  "11111111111",
+  "33333333333", // band at base
+];
+
+const HAT_CROWN = [
+  "1.1.1.1.1.1",
+  "1.1.1.1.1.1",
+  "11111111111",
+  "13311311331",
+  "11111111111",
+  "22222222222",
+];
+
+const HAT_TOP = [
+  ".77777777.",
+  ".77777777.",
+  ".77777777.",
+  ".77777777.",
+  ".77777777.",
+  ".77777777.",
+  "9999999999",
+  "7777777777",
+];
+
+const HAT_FLOWER = [
+  "...f.f...f.f...",
+  "..fzfzf.fzfzf..",
+  "...f.f...f.f...",
+  ".f...........f.",
+  "fzf.........fzf",
+  ".f...........f.",
+];
+
+const HAT_WIZARD = [
+  "....55....",
+  "...5555...",
+  "..550055..",
+  "..555555..",
+  ".55505555.",
+  ".55555555.",
+  "5555555555",
+  "5555555555",
+  "6666666666",
+];
+
+// Hat metadata: name, pixel grid, top offset (pixels of head it covers above),
+// scale we want in real px, and unlock threshold (cumulative glasses ever drunk)
+const HATS = [
+  { id: 'none',   name: 'No Hat',     pixels: null,        unlock: 0,  scale: 5, dy: 0 },
+  { id: 'party',  name: 'Party Hat',  pixels: HAT_PARTY,   unlock: 0,  scale: 5, dy: -22 },
+  { id: 'crown',  name: 'Crown',      pixels: HAT_CROWN,   unlock: 5,  scale: 5, dy: -16 },
+  { id: 'top',    name: 'Top Hat',    pixels: HAT_TOP,     unlock: 10, scale: 5, dy: -28 },
+  { id: 'flower', name: 'Flower Crown', pixels: HAT_FLOWER, unlock: 20, scale: 4, dy: -10 },
+  { id: 'wizard', name: 'Wizard Hat', pixels: HAT_WIZARD,  unlock: 40, scale: 5, dy: -34 },
+];
+
+function TRex({ scale = 5, hatId = 'none', lookDir = 0, lookV = 0 }) {
+  const hat = HATS.find(h => h.id === hatId) || HATS[0];
+  // Eye is at sprite coord ~ (16, 4) for the white. Pupil currently at (16,4)
+  // We'll overlay an extra pupil that can shift by lookDir/lookV pixels.
+  return (
+    <div className="trex-body" style={{ position: 'relative', width: 26 * scale, height: 22 * scale }}>
+      <PixelSprite pixels={TREX_PIXELS} scale={scale} />
+      {/* Animated pupil overlay sits exactly at eye-white area; nudges 1px L/R */}
+      <div
+        style={{
+          position: 'absolute',
+          left: (15 * scale) + (lookDir * scale * 0.6),
+          top: (4 * scale) + (lookV * scale * 0.6),
+          width: scale,
+          height: scale,
+          background: '#1a1a1a',
+          imageRendering: 'pixelated',
+          transition: 'left 0.5s cubic-bezier(.4,0,.2,1), top 0.5s cubic-bezier(.4,0,.2,1)',
+          pointerEvents: 'none',
+        }}
+      />
+      {/* Cheek blush for cuteness */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 14 * scale,
+          top: 6 * scale,
+          width: 2 * scale,
+          height: scale,
+          background: 'rgba(255, 138, 168, 0.55)',
+          borderRadius: '40%',
+          pointerEvents: 'none',
+        }}
+      />
+      {hat.pixels && (
+        <div
+          className="hat"
+          style={{
+            top: hat.dy + 'px',
+            left: '62%', // bias hat over the head (right side of sprite)
+            transform: 'translateX(-50%)',
+          }}
+        >
+          <PixelSprite pixels={hat.pixels} scale={hat.scale} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============== CUP ===============
+const CUP_PIXELS = [
+  "CCCCCCCC",
+  "CcccccccC",
+  "CcBBBBBcC",
+  "CcbbbbbcC",
+  "CcbbbbbcC",
+  "CccccccC.",
+  ".CCCCCCC.",
+  "..CCCCCC..",
+];
+
+function Cup({ scale = 4 }) {
+  return <PixelSprite pixels={CUP_PIXELS} scale={scale} />;
+}
+
+// little glass icon for tracker (smaller)
+const GLASS_FULL = [
+  "BBBBBB",
+  "bbbbbb",
+  "bbbbbb",
+  "bbbbbb",
+  "bbbbbb",
+  ".bbbb.",
+];
+const GLASS_EMPTY = [
+  "CC..CC",
+  "C....C",
+  "C....C",
+  "C....C",
+  "C....C",
+  ".CCCC.",
+];
+function GlassIcon({ full, scale = 4 }) {
+  return <PixelSprite pixels={full ? GLASS_FULL : GLASS_EMPTY} scale={scale} />;
+}
+
+// =============== SUN ===============
+const SUN_PIXELS = [
+  "...yyyyy...",
+  "..yyyYYyy..",
+  ".yyYYYYYyy.",
+  "yyYYYYYYYyy",
+  "yyYYYYYYYyy",
+  "yyYYYYYYYyy",
+  ".yyYYYYYyy.",
+  "..yyyYYyy..",
+  "...yyyyy...",
+];
+function Sun({ scale = 5 }) {
+  return <PixelSprite pixels={SUN_PIXELS} scale={scale} />;
+}
+
+// =============== CLOUD ===============
+const CLOUD_PIXELS = [
+  "..eee...eee..",
+  ".ewwwe.ewwwe.",
+  "ewwwwwwwwwwwe",
+  "ewwwwwwwwwwwe",
+  ".ewwwwwwwwwe.",
+  "..eeeeeeee...",
+];
+function Cloud({ scale = 4 }) {
+  return <PixelSprite pixels={CLOUD_PIXELS} scale={scale} />;
+}
+
+// =============== HOUSE ===============
+const HOUSE_PIXELS = [
+  "....RR....",
+  "...rRRr...",
+  "..rrRRrr..",
+  ".rrrrrrrr.",
+  "rrrrrrrrrr",
+  "RRRRRRRRRR",
+  "HhhhhhhhhH",
+  "Hh!@@!hhhH",
+  "Hh!@@!hhhH",
+  "Hh!!!!hhhH",
+  "Hhhhhh##hH",
+  "Hhhhhh#$hH",
+  "HHHHHHHHHH",
+];
+function House({ scale = 3 }) {
+  return <PixelSprite pixels={HOUSE_PIXELS} scale={scale} />;
+}
+
+// =============== HILL ===============
+const HILL_PIXELS = [
+  "....pppppp....",
+  "..pppppppppp..",
+  ".pppppppppppp.",
+  "pppPPPpppPPPpp",
+  "pppPPPpppPPPpp",
+  "PPPPPPPPPPPPPP",
+];
+function Hill({ scale = 4 }) {
+  return <PixelSprite pixels={HILL_PIXELS} scale={scale} />;
+}
+
+// =============== FLOWER ===============
+const FLOWER_PIXELS = [
+  ".f.f.",
+  "fzfzf",
+  ".f.f.",
+  "..p..",
+  "..p..",
+  "..p..",
+];
+function Flower({ scale = 3 }) {
+  return <PixelSprite pixels={FLOWER_PIXELS} scale={scale} />;
+}
+
+// =============== STAR (for confetti / sparkle) ===============
+const SPARKLE_PIXELS = [
+  "..0..",
+  ".000.",
+  "00100",
+  ".000.",
+  "..0..",
+];
+function Sparkle({ scale = 3 }) {
+  return <PixelSprite pixels={SPARKLE_PIXELS} scale={scale} />;
+}
+
+// expose
+Object.assign(window, {
+  PixelSprite, TRex, Cup, GlassIcon, Sun, Cloud, House, Hill, Flower, Sparkle,
+  HATS, PIXEL_PALETTE,
+});
+
+// Main App
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+const STORAGE_KEY = 'trex-water-app-v1';
+const DAILY_GOAL = 8;
+const INTERVAL_OPTIONS = [15, 30, 45, 60];
+
+const MESSAGES = [
+  "drink you water",
+  "not drinking water — that's what killed us",
+  "pie had his water, now it's you turn",
+  "make me proud — drink water",
+];
+
+const REMINDER_AUTO_DISMISS_MS = 90 * 1000;
+
+function todayStr() {
+  return new Date().toDateString();
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed;
+  } catch { return null; }
+}
+
+const DEFAULT_STATE = {
+  date: todayStr(),
+  glasses: 0,
+  totalGlasses: 0,
+  interval: 30,
+  hat: 'none',
+  lastDrinkAt: null,
+  goalHitToday: false,
+};
+
+function App() {
+  const [state, setState] = useState(() => {
+    const saved = loadState();
+    if (!saved) return DEFAULT_STATE;
+    if (saved.date !== todayStr()) {
+      return { ...saved, date: todayStr(), glasses: 0, goalHitToday: false };
+    }
+    return { ...DEFAULT_STATE, ...saved };
+  });
+
+  // Persist
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
+
+  // ----- reminder timer -----
+  const [secondsLeft, setSecondsLeft] = useState(state.interval * 60);
+  const [reminding, setReminding] = useState(false);
+  const [message, setMessage] = useState('');
+  const [confetti, setConfetti] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showHats, setShowHats] = useState(false);
+  const [wiggle, setWiggle] = useState(false);
+
+  // Idle eye look — random direction every few seconds
+  const [look, setLook] = useState({ x: 0, y: 0 });
+  useEffect(() => {
+    let timeoutId;
+    const tick = () => {
+      const dirs = [
+        { x: 0, y: 0 },
+        { x: -1, y: 0 },
+        { x: 1, y: 0 },
+        { x: 0, y: 1 },
+        { x: 1, y: -1 },
+        { x: -1, y: 1 },
+      ];
+      setLook(dirs[Math.floor(Math.random() * dirs.length)]);
+      timeoutId = setTimeout(tick, 1800 + Math.random() * 2200);
+    };
+    tick();
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  // Reset countdown when interval changes or after reminding ends/drink
+  const resetCountdown = useCallback(() => {
+    setSecondsLeft(state.interval * 60);
+  }, [state.interval]);
+
+  useEffect(() => { resetCountdown(); }, [state.interval]);
+
+  // Tick
+  useEffect(() => {
+    if (reminding) return; // pause timer while actively reminding
+    const id = setInterval(() => {
+      setSecondsLeft(t => {
+        if (t <= 1) {
+          triggerReminder();
+          return state.interval * 60;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [reminding, state.interval]);
+
+  // Auto-dismiss reminder after a bit (he hovers, doesn't pester forever)
+  useEffect(() => {
+    if (!reminding) return;
+    const id = setTimeout(() => {
+      setReminding(false);
+      setMessage('');
+    }, REMINDER_AUTO_DISMISS_MS);
+    return () => clearTimeout(id);
+  }, [reminding]);
+
+  function triggerReminder() {
+    setMessage(MESSAGES[Math.floor(Math.random() * MESSAGES.length)]);
+    setReminding(true);
+  }
+
+  function drink() {
+    setState(s => {
+      if (s.glasses >= DAILY_GOAL) return s;
+      const newGlasses = s.glasses + 1;
+      const justHitGoal = newGlasses === DAILY_GOAL && !s.goalHitToday;
+      if (justHitGoal) {
+        setConfetti(true);
+        setTimeout(() => setConfetti(false), 5000);
+      }
+      return {
+        ...s,
+        glasses: newGlasses,
+        totalGlasses: (s.totalGlasses || 0) + 1,
+        lastDrinkAt: Date.now(),
+        goalHitToday: justHitGoal ? true : s.goalHitToday,
+      };
+    });
+    if (reminding) {
+      setReminding(false);
+      setMessage('');
+    }
+    resetCountdown();
+  }
+
+  function setGlasses(n) {
+    setState(s => ({ ...s, glasses: Math.max(0, Math.min(DAILY_GOAL, n)) }));
+  }
+
+  function setInterval_(mins) {
+    setState(s => ({ ...s, interval: mins }));
+    setSecondsLeft(mins * 60);
+  }
+
+  function setHat(id) {
+    setState(s => ({ ...s, hat: id }));
+  }
+
+  function resetToday() {
+    setState(s => ({ ...s, glasses: 0, goalHitToday: false }));
+    setReminding(false);
+    setMessage('');
+    resetCountdown();
+  }
+
+  function dismissReminder() {
+    setReminding(false);
+    setMessage('');
+    resetCountdown();
+  }
+
+  function pokeTrex() {
+    if (reminding) {
+      // tapping during reminder = drink
+      drink();
+      return;
+    }
+    setWiggle(true);
+    setTimeout(() => setWiggle(false), 900);
+    // Sometimes show a passing thought
+    if (Math.random() < 0.5) {
+      setMessage(MESSAGES[Math.floor(Math.random() * MESSAGES.length)]);
+      setReminding(true);
+    }
+  }
+
+  // formatting
+  const mm = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
+  const ss = String(secondsLeft % 60).padStart(2, '0');
+
+  const trexClass = reminding ? 'reminding' : (wiggle ? 'wiggle' : 'idle');
+
+  return (
+    <div className="window" role="application" aria-label="T-Rex water reminder">
+      {/* Title bar */}
+      <div className="titlebar">
+        <span className="dot" aria-hidden="true"></span>
+        <span className="title">T-REX H2O</span>
+        <span className="countdown" title="Time until next reminder">{mm}:{ss}</span>
+        <button className="gear" onClick={() => setShowSettings(true)} aria-label="Settings">≡</button>
+      </div>
+
+      {/* Scene */}
+      <div className="scene">
+        <div className="sun"><Sun scale={4} /></div>
+
+        <div className="cloud cloud-1"><Cloud scale={4} /></div>
+        <div className="cloud cloud-2"><Cloud scale={3} /></div>
+        <div className="cloud cloud-3"><Cloud scale={3} /></div>
+
+        <div className="hills">
+          <div style={{ transform: 'translateY(20px) scale(1.6)', opacity: 0.7 }}><Hill scale={3} /></div>
+          <div style={{ transform: 'translateY(8px) scale(2)', opacity: 0.85 }}><Hill scale={3} /></div>
+        </div>
+
+        <div className="house"><House scale={3} /></div>
+
+        <div className="ground"></div>
+
+        <div className="flower flower-1"><Flower scale={3} /></div>
+        <div className="flower flower-2"><Flower scale={2} /></div>
+        <div className="flower flower-3"><Flower scale={3} /></div>
+
+        <div className={`trex-wrap ${trexClass}`} onClick={pokeTrex} role="button" aria-label="T-Rex">
+          <div className="bubble" aria-live="polite">{message}</div>
+          <div className="trex-shadow"></div>
+          <TRex scale={5} hatId={state.hat} lookDir={look.x} lookV={look.y} />
+          <div className="cup-held"><Cup scale={4} /></div>
+        </div>
+
+        {confetti && <Confetti />}
+      </div>
+
+      {/* Panel */}
+      <div className="panel">
+        <div className="row">
+          <span className="stat-label">DAILY GOAL</span>
+          <span className="stat-value">{state.glasses} / {DAILY_GOAL}</span>
+        </div>
+        <div className="glasses" aria-label="Glasses tracker">
+          {Array.from({ length: DAILY_GOAL }).map((_, i) => {
+            const full = i < state.glasses;
+            return (
+              <div
+                key={i}
+                className={`glass-slot ${full ? 'full' : ''}`}
+                onClick={() => setGlasses(full ? i : i + 1)}
+                title={full ? 'Click to un-mark' : 'Mark this glass'}
+              >
+                <GlassIcon full={full} scale={3} />
+              </div>
+            );
+          })}
+        </div>
+
+        <button
+          className={`drink-btn ${state.glasses >= DAILY_GOAL ? 'done' : ''}`}
+          onClick={drink}
+          disabled={state.glasses >= DAILY_GOAL}
+        >
+          {state.glasses >= DAILY_GOAL ? '★ GOAL HIT — GOOD BOY ★' : 'I DRANK A GLASS'}
+        </button>
+
+        <div className="controls">
+          <button className="ctrl-btn primary" onClick={triggerReminder} title="Trigger reminder right now">
+            TEST
+          </button>
+          <button className="ctrl-btn" onClick={() => setShowHats(true)}>
+            HATS
+          </button>
+          <span className="next-reminder">
+            next nag in <strong>{mm}:{ss}</strong>
+          </span>
+        </div>
+      </div>
+
+      {showSettings && (
+        <SettingsModal
+          state={state}
+          onClose={() => setShowSettings(false)}
+          onSetInterval={setInterval_}
+          onReset={resetToday}
+        />
+      )}
+
+      {showHats && (
+        <HatModal
+          state={state}
+          onClose={() => setShowHats(false)}
+          onPick={setHat}
+        />
+      )}
+    </div>
+  );
+}
+
+// =============== SETTINGS MODAL ===============
+function SettingsModal({ state, onClose, onSetInterval, onReset }) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-head">
+          <span>SETTINGS</span>
+          <button className="x" onClick={onClose} aria-label="Close">X</button>
+        </div>
+        <div className="modal-body">
+          <div className="section-label">REMIND ME EVERY</div>
+          <div className="interval-row">
+            {INTERVAL_OPTIONS.map(m => (
+              <button
+                key={m}
+                className={`interval-btn ${state.interval === m ? 'active' : ''}`}
+                onClick={() => onSetInterval(m)}
+              >
+                {m}m
+              </button>
+            ))}
+          </div>
+
+          <div className="section-label">TODAY</div>
+          <div style={{ fontFamily: 'VT323, monospace', fontSize: 18, lineHeight: 1.3, color: 'var(--ink)' }}>
+            Glasses drunk: <strong>{state.glasses}</strong> / {DAILY_GOAL}<br/>
+            Lifetime glasses: <strong>{state.totalGlasses || 0}</strong><br/>
+            {state.lastDrinkAt
+              ? <>Last drink: {new Date(state.lastDrinkAt).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</>
+              : <>No drinks logged yet today</>}
+          </div>
+
+          <div className="section-label">DANGER ZONE</div>
+          <button className="reset-btn" onClick={() => {
+            if (confirm('Reset today\'s glasses to 0?')) onReset();
+          }}>
+            RESET TODAY
+          </button>
+
+          <div style={{ marginTop: 18, fontFamily: 'VT323, monospace', fontSize: 16, color: 'var(--ink-soft)', textAlign: 'center', lineHeight: 1.2 }}>
+            tip: tap the t-rex to poke him<br/>
+            click any glass to mark it
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============== HAT MODAL ===============
+function HatModal({ state, onClose, onPick }) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-head">
+          <span>T-REX WARDROBE</span>
+          <button className="x" onClick={onClose} aria-label="Close">X</button>
+        </div>
+        <div className="modal-body">
+          <div className="section-label">UNLOCK HATS BY DRINKING WATER</div>
+          <div className="hat-grid">
+            {HATS.map(hat => {
+              const unlocked = (state.totalGlasses || 0) >= hat.unlock;
+              const active = state.hat === hat.id;
+              return (
+                <div
+                  key={hat.id}
+                  className={`hat-card ${active ? 'active' : ''} ${!unlocked ? 'locked' : ''}`}
+                  onClick={() => unlocked && onPick(hat.id)}
+                  title={unlocked ? hat.name : `Drink ${hat.unlock} glasses to unlock`}
+                >
+                  <div className="preview-trex">
+                    <TRex scale={3} hatId={hat.id} lookDir={0} lookV={0} />
+                  </div>
+                  <div className="name">{hat.name}</div>
+                  {!unlocked && (
+                    <div className="lock-overlay">
+                      <div>LOCKED</div>
+                      <div>{hat.unlock} TOTAL</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ marginTop: 14, fontFamily: 'VT323, monospace', fontSize: 16, color: 'var(--ink-soft)', textAlign: 'center', lineHeight: 1.2 }}>
+            you've drunk <strong>{state.totalGlasses || 0}</strong> glasses ever ✦
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============== CONFETTI ===============
+function Confetti() {
+  const pieces = useMemo(() => {
+    const colors = ['#ff8aa8', '#ffd34a', '#74c46d', '#6cc4e8', '#a78bfa', '#ff9e7c'];
+    return Array.from({ length: 60 }).map((_, i) => ({
+      key: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 1.2,
+      duration: 2.4 + Math.random() * 2,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: 6 + Math.random() * 6,
+      rot: Math.random() * 360,
+      shape: Math.random() < 0.5 ? '0' : '50%',
+    }));
+  }, []);
+  return (
+    <div className="confetti-layer" aria-hidden="true">
+      {pieces.map(p => (
+        <span
+          key={p.key}
+          className="confetti-piece"
+          style={{
+            left: p.left + '%',
+            width: p.size,
+            height: p.size,
+            background: p.color,
+            borderRadius: p.shape,
+            animationDelay: p.delay + 's',
+            animationDuration: p.duration + 's',
+            transform: `rotate(${p.rot}deg)`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// =============== ROOT ===============
+function Root() {
+  return (
+    <>
+      <App />
+      <div className="footer">
+        made with <span className="heart">♥</span> · stay hydrated
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
+
+</script>
+</body>
+</html>
