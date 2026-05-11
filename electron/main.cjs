@@ -5,7 +5,7 @@ const isDev = process.env.NODE_ENV === 'development';
 
 const ZOOM = 0.6;
 const WIN_W = 340;
-const WIN_H = 500;
+const WIN_H = 470;
 const BOTTOM_MARGIN = 8;
 
 function createWindow() {

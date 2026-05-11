@@ -10,6 +10,7 @@ const COMMON = {
   dir: ROOT,
   out: OUT,
   name: 'T-Rex H2O',
+  appBundleId: 'com.trex.h2o',
   appVersion: require(path.join(ROOT, 'package.json')).version,
   overwrite: true,
   asar: true,
